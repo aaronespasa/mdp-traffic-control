@@ -27,3 +27,5 @@ $ pip install -r requirements.txt
 ```
 
 🎉 Now, you are ready to go!
+
+## Made with ❤️ by @aaronespasa & Marina Buitrago
