@@ -1,0 +1,6 @@
+{
+    "states": [0, 1, 2, 3, 4],
+    "initial_state": 0,
+    "actions": ["g", "r"],
+    "rewards": [1, 0]
+}
