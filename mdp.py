@@ -8,7 +8,6 @@ Copyright (c), Aarón Espasandín Geselmann, Marina Buitrago Pérez - All Rights
 """
 
 import json
-import numpy as np
 import pandas as pd
 
 class TrafficControlMdp:
@@ -46,7 +45,7 @@ class TrafficControlMdp:
             self.probabilities_n.set_index('prev_state', inplace=True)
 
         self.current_action = None
-        self.values = np.zeros(len(self.new_states))
+        self.values = [0] * len(self.new_states)
         self.best_actions = [""] * len(self.new_states)
 
     def value_iteration(self, policy_txt_file:str, epsilon:float=0.01, reset=False):
@@ -59,7 +58,7 @@ class TrafficControlMdp:
             reset (bool): If True, the values and the best_actions arrays are filled with 0s.
         """
         if reset:
-            self.values = np.zeros(len(self.new_states))
+            self.values = [0] * len(self.new_states)
             self.best_actions = [""] * len(self.new_states)
 
         # set the difference between values with a value bigger than epsilon
@@ -71,44 +70,41 @@ class TrafficControlMdp:
             values_difference = 0
 
             for prev_state_idx, prev_state in enumerate(self.prev_states):
+                # Initial variables
+                best_action = None
                 value_old = self.values[prev_state_idx]
                 value_tmp = float('inf') # Temporary value used to find the minimum value
+                
+                # Obtain the minimum expected value for prev_state looping over all the actions
+                # and save the value in the variable value_tmp
                 for action in self.actions:
                     action_cost = self.get_cost(prev_state, action)
+                    
+                    # sum(P(s'|s, a) * V(s')) -> sum all the probabilities of the next states * expected values
                     new_state_probability = 0
                     for new_state_idx, new_state in enumerate(self.new_states):
-                        # print(f"prev: {prev_state}, new: {new_state}, action: {action} -> prob: {self.get_probability_state(prev_state, new_state, action)}")
                         new_state_probability += self.get_probability_state(prev_state, new_state, action) * \
                                                     self.values[new_state_idx]
-                    # update the temporal value
+                    
+                    # V(s) = min(c(a) + sum(probabilities * V(s')))
                     if value_tmp > action_cost + new_state_probability:
+                        # update the temporal value
                         value_tmp = action_cost + new_state_probability
+                        # assign the new best action
+                        best_action = action
                 
+                # Update the best action (π(s)) and the expected value of the state (V(s))
+                self.best_actions[prev_state_idx] = best_action
                 self.values[prev_state_idx] = value_tmp
 
-                
+                # Compute the difference to know if another iteration has to be done
                 values_difference = max(values_difference, abs(value_old - value_tmp))
+        
         for prev_state, value in zip(self.prev_states, self.values):
             print(f"V({prev_state}) = {value}")
+        
         # Assign the best actions according to the calculated values
         for prev_state_idx, prev_state in enumerate(self.prev_states):
-            best_action = None
-            value_tmp = float('inf')
-            for action in self.actions:
-                action_cost = self.get_cost(prev_state, action)
-                new_state_probability = 0
-                for new_state_idx, new_state in enumerate(self.new_states):
-                    new_state_probability += self.get_probability_state(prev_state, new_state, action) * \
-                                                self.values[new_state_idx]
-                
-                if value_tmp > action_cost + new_state_probability:
-                    # update the temporal value
-                    value_tmp = action_cost + new_state_probability
-                    # assign the new best action
-                    best_action = action
-
-            self.best_actions[prev_state_idx] = best_action
-
             if prev_state == "LLH":
                 print(f"LLH: Best action should be E, but it actually is {self.best_actions[prev_state_idx]}")
             elif prev_state == "HLL":
@@ -118,8 +114,6 @@ class TrafficControlMdp:
 
         with open(policy_txt_file, "w", encoding="utf-8") as policy_file:
             policy_file.write(str(self.best_actions))
-
-
 
     def get_cost(self, prev_state:str, action:str):
         """
@@ -134,33 +128,34 @@ class TrafficControlMdp:
         if prev_state not in self.prev_states:
             raise ValueError('State not in the list of previous states')
         
+        return prev_state.count("H") * 10
 
         # return 1
-        if prev_state == "HHH":
-            return 5
+        # if prev_state == "HHH":
+        #     return 5
         
-        action_idx = self.actions.index(action)
+        # action_idx = self.actions.index(action)
 
-        if prev_state.count("H") == 2 and prev_state[action_idx] == "L":
-            return 10
+        # if prev_state.count("H") == 2 and prev_state[action_idx] == "L":
+        #     return 10
         
-        if prev_state.count("H") == 1 and prev_state[action_idx] == "H":
-            return 0
+        # if prev_state.count("H") == 1 and prev_state[action_idx] == "H":
+        #     return 0
         
-        return 2
+        # return 2
 
 
-        # # Initially, the associated cost of all actions will be 0
-        # # as there are no preferences
+        # Initially, the associated cost of all actions will be 0
+        # as there are no preferences
         # if self.current_action is None:
-        #     return self.costs[2]
+        #     return 1
 
         # # if the action is not changed
         # if action == self.current_action:
-        #     return self.costs[1]
+        #     return 0
 
         # # if the action has changed
-        # return self.costs[2]
+        # return 1
 
     def get_probability_state(self, prev_state:str, new_state:str, action:str):
         """
