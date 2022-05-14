@@ -102,8 +102,7 @@ class TrafficControlMdp:
         
         for prev_state, value in zip(self.prev_states, self.values):
             print(f"V({prev_state}) = {value}")
-        
-        # Assign the best actions according to the calculated values
+
         for prev_state_idx, prev_state in enumerate(self.prev_states):
             if prev_state == "LLH":
                 print(f"LLH: Best action should be E, but it actually is {self.best_actions[prev_state_idx]}")
