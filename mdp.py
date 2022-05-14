@@ -131,8 +131,9 @@ class TrafficControlMdp:
         """
         Returns the cost of the action.
 
-        Changing the action has an associated cost of 1.
-        Keeping the same action has an associated cost of 0.
+        Args:
+            prev_state (str): Previous state.
+            action (str): Current action.
         """
         if action not in self.actions:
             raise ValueError('Action not in the list of actions.')
@@ -140,7 +141,7 @@ class TrafficControlMdp:
         if prev_state not in self.prev_states:
             raise ValueError('State not in the list of previous states')
         
-        return prev_state.count("H") * 10
+        return 2
 
     def get_probability_state(self, prev_state:str, new_state:str, action:str):
         """
