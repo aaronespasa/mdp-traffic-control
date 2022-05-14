@@ -2,7 +2,6 @@
     "states": ["HHL", "HHH", "LHH", "HLL", "HLH", "LLH", "LHL", "LLL"],
     "final_state": "LLL",
     "actions": ["W", "N", "E"],
-    "costs": [0, 1, 2],
     "probabilities_e": "probabilities_E.csv",
     "probabilities_w": "probabilities_W.csv",
     "probabilities_n": "probabilities_N.csv"

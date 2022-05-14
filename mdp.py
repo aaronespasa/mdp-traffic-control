@@ -23,7 +23,6 @@ class TrafficControlMdp:
                     - States (list): List of the states of the MDP including the final state.
                     - Final State (str): Final state of the MDP.
                     - Actions (list): List of the actions of the MDP.
-                    - Rewards (list): List of the rewards of the MDP.
         """
         with open(config_file, 'r', encoding="utf-8") as config_file_descriptor:
             config_dict = json.load(config_file_descriptor)
@@ -32,7 +31,6 @@ class TrafficControlMdp:
             self.prev_states.remove(config_dict['final_state'])
             self.new_states = config_dict['states']
             self.actions = config_dict['actions']
-            self.costs = config_dict['costs']
 
             # modify the index of all the probabilities to be prev_state
             self.probabilities_e = pd.read_csv(config_dict['probabilities_e'])
@@ -83,13 +81,15 @@ class TrafficControlMdp:
                         new_state_probability += self.get_probability_state(prev_state, new_state, action) * \
                                                     self.values[new_state_idx]
                     # update the temporal value
-                    value_tmp = min(value_tmp, action_cost + new_state_probability)
+                    if value_tmp > action_cost + new_state_probability:
+                        value_tmp = action_cost + new_state_probability
                 
                 self.values[prev_state_idx] = value_tmp
 
                 
                 values_difference = max(values_difference, abs(value_old - value_tmp))
-
+        for prev_state, value in zip(self.prev_states, self.values):
+            print(f"V({prev_state}) = {value}")
         # Assign the best actions according to the calculated values
         for prev_state_idx, prev_state in enumerate(self.prev_states):
             best_action = None
@@ -100,12 +100,12 @@ class TrafficControlMdp:
                 for new_state_idx, new_state in enumerate(self.new_states):
                     new_state_probability += self.get_probability_state(prev_state, new_state, action) * \
                                                 self.values[new_state_idx]
-                # assign the new best action
+                
                 if value_tmp > action_cost + new_state_probability:
+                    # update the temporal value
+                    value_tmp = action_cost + new_state_probability
+                    # assign the new best action
                     best_action = action
-
-                # update the temporal value
-                value_tmp = min(value_tmp, action_cost + new_state_probability)
 
             self.best_actions[prev_state_idx] = best_action
 
@@ -130,24 +130,37 @@ class TrafficControlMdp:
         """
         if action not in self.actions:
             raise ValueError('Action not in the list of actions.')
-
-        # Initially, the associated cost of all actions will be 0
-        # as there are no preferences
-        if self.current_action is None:
-            return self.costs[2]
         
-        if prev_state == "LLH" and action == "E" or \
-           prev_state == "HLL" and action == "W" or \
-           prev_state == "LHL" and action == "N":
-            return self.costs[0]
+        if prev_state not in self.prev_states:
+            raise ValueError('State not in the list of previous states')
         
 
-        # if the action is not changed
-        if action == self.current_action:
-            return self.costs[1]
+        # return 1
+        if prev_state == "HHH":
+            return 5
+        
+        action_idx = self.actions.index(action)
 
-        # if the action has changed
-        return self.costs[2]
+        if prev_state.count("H") == 2 and prev_state[action_idx] == "L":
+            return 10
+        
+        if prev_state.count("H") == 1 and prev_state[action_idx] == "H":
+            return 0
+        
+        return 2
+
+
+        # # Initially, the associated cost of all actions will be 0
+        # # as there are no preferences
+        # if self.current_action is None:
+        #     return self.costs[2]
+
+        # # if the action is not changed
+        # if action == self.current_action:
+        #     return self.costs[1]
+
+        # # if the action has changed
+        # return self.costs[2]
 
     def get_probability_state(self, prev_state:str, new_state:str, action:str):
         """
@@ -172,4 +185,4 @@ class TrafficControlMdp:
 if __name__ == "__main__":
      # Declare the MDP
     mdp = TrafficControlMdp("config.json")
-    mdp.value_iteration("optimal_policy2.txt", epsilon=0.01, reset=True)
+    mdp.value_iteration("optimal_policy2.txt", epsilon=0.001, reset=True)
