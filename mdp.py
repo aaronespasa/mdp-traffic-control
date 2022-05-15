@@ -26,9 +26,9 @@ class TrafficControlMdp:
         with open(config_file, 'r', encoding="utf-8") as config_file_descriptor:
             config_dict = load(config_file_descriptor)
             # the previous states do not contain the final state
-            self.prev_states = config_dict['states']
+            self.prev_states = config_dict['states'].copy()
             self.prev_states.remove(config_dict['final_state'])
-            self.new_states = config_dict['states']
+            self.new_states = config_dict['states'].copy()
             self.actions = config_dict['actions']
 
             # modify the index of all the probabilities to be prev_state
@@ -44,13 +44,12 @@ class TrafficControlMdp:
             self.probabilities_n.columns = ['prev_state'] + list(self.probabilities_n.columns[1:])
             self.probabilities_n.set_index('prev_state', inplace=True)
 
-        self.current_action = None
         self.reset_expected_values_and_best_actions()
     
     def reset_expected_values_and_best_actions(self):
         """Resets the values and the best_actions arrays."""
         self.values = [0] * len(self.new_states)
-        self.best_actions = [""] * len(self.new_states)
+        self.best_actions = [""] * len(self.prev_states)
 
     def value_iteration(self, policy_txt_file:str, epsilon:float=0.01, reset=False):
         """
@@ -107,16 +106,8 @@ class TrafficControlMdp:
 
     def print_expected_values(self):
         """Prints the expected values of the states."""
-        for prev_state, value in zip(self.prev_states, self.values):
-            print(f"V({prev_state}) = {value}")
-        
-        for prev_state_idx, prev_state in enumerate(self.prev_states):
-            if prev_state == "LLH":
-                print(f"LLH: Best action should be E, but it actually is {self.best_actions[prev_state_idx]}")
-            elif prev_state == "HLL":
-                print(f"HLL: Best action should be W, but it actually is {self.best_actions[prev_state_idx]}")
-            elif prev_state == "LHL":
-                print(f"LHL: Best action should be N, but it actually is {self.best_actions[prev_state_idx]}")
+        for new_state, value in zip(self.new_states, self.values):
+            print(f"V({new_state}) = {round(value, 6)}")
 
     def save_policy(self, policy_txt_file:str):
         """Saves the optimal policy in a text file.
@@ -141,7 +132,7 @@ class TrafficControlMdp:
         if prev_state not in self.prev_states:
             raise ValueError('State not in the list of previous states')
         
-        return 2
+        return 1
 
     def get_probability_state(self, prev_state:str, new_state:str, action:str):
         """
@@ -165,4 +156,4 @@ class TrafficControlMdp:
 
 if __name__ == "__main__":
     mdp = TrafficControlMdp("config.json")
-    mdp.value_iteration("optimal_policy2.txt", epsilon=0.001, reset=True)
+    mdp.value_iteration("optimal_policy.txt", epsilon=0.000001, reset=True)
